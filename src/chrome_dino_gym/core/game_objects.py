@@ -111,3 +111,80 @@ class Dinosaur(GameObject):
             "width": self.width,
             "height": self.height,
         }
+
+
+@dataclass
+class Obstacle(GameObject):
+    """Base obstacle class."""
+
+    speed: float = PHYSICS.BASE_SPEED
+    obstacle_type: str = "generic"
+
+    def update(self):
+        """Move obstacle leftward."""
+        self.x -= self.speed
+
+    def is_off_screen(self) -> bool:
+        """Check if obstacle is completely off the left side of screen."""
+        return self.x + self.width < 0
+
+
+@dataclass
+class Cactus(Obstacle):
+    """Cactus obstacle with multiple variants."""
+
+    obstacle_type: str = "cactus"
+    variant: int = 0
+
+    def __init__(self, x: float, variant: int = 0, speed: float | None = None):
+        """Initialize cactus with specified variant."""
+        self.variant = variant % len(PHYSICS.CACTUS_VARIANTS)
+        variant_data = PHYSICS.CACTUS_VARIANTS[self.variant]
+
+        super().__init__(
+            x=x,
+            y=PHYSICS.GROUND_Y - variant_data[1],  # Adjust y to ground level
+            width=variant_data[0],
+            height=variant_data[1],
+            speed=speed or PHYSICS.BASE_SPEED,
+            obstacle_type="cactus",
+        )
+
+
+@dataclass
+class Bird(Obstacle):
+    """Flying bird obstacle with multiple flight levels."""
+
+    obstacle_type: str = "bird"
+    flight_level: int = 0
+
+    def __init__(self, x: float, flight_level: int = 0, speed: float | None = None):
+        """Initialize bird with specified flight level."""
+        self.flight_level = flight_level % len(PHYSICS.BIRD_FLIGHT_HEIGHTS)
+        height = PHYSICS.BIRD_FLIGHT_HEIGHTS[self.flight_level]
+
+        super().__init__(
+            x=x,
+            y=height,
+            width=PHYSICS.BIRD_WIDTH,
+            height=PHYSICS.BIRD_HEIGHT,
+            speed=speed or PHYSICS.BASE_SPEED,
+            obstacle_type="bird",
+        )
+
+
+@dataclass
+class Cloud:
+    """Decorative cloud object."""
+
+    x: float
+    y: float
+    speed: float = PHYSICS.CLOUD_SPEED
+
+    def update(self):
+        """Move cloud leftward."""
+        self.x -= self.speed
+
+    def is_off_screen(self) -> bool:
+        """Check if cloud is off screen."""
+        return self.x + 46 < 0  # Assuming cloud width of 46
