@@ -19,10 +19,12 @@ class DinoGameEngine:
     - Physics updates
     """
 
-    def __init__(self, width: int = None, height: int = None):
+    def __init__(
+        self, width: int = PHYSICS.GAME_WIDTH, height: int = PHYSICS.GAME_HEIGHT
+    ):
         """Initialize game engine with optional custom dimensions."""
-        self.width = width or PHYSICS.GAME_WIDTH
-        self.height = height or PHYSICS.GAME_HEIGHT
+        self.width = width
+        self.height = height
         self.ground_y = PHYSICS.GROUND_Y
 
         # Game State
@@ -31,12 +33,17 @@ class DinoGameEngine:
         self.speed = PHYSICS.BASE_SPEED
 
         # Game Objects
-        self.dinosaur = Dinosaur(x=PHYSICS.DINO_X_POSITION, y=self.ground_y)
+        self.dinosaur = Dinosaur(
+            x=PHYSICS.DINO_X_POSITION,
+            y=self.ground_y,
+            width=self.width,
+            height=self.height,
+        )
         self.obstacles: list[Obstacle] = []
         self.clouds: list[Cloud] = []
 
         # Obstacle spawning
-        self.obstacle_timer = 0
+        self.obstacle_timer: float = 0.0
         self.next_obstacle_distance = random.randint(
             PHYSICS.MIN_OBSTACLE_GAP, PHYSICS.MAX_OBSTACLE_GAP
         )
@@ -47,12 +54,17 @@ class DinoGameEngine:
             PHYSICS.CLOUD_SPAWN_RATE_MIN, PHYSICS.CLOUD_SPAWN_RATE_MAX
         )
 
-    def reset(self):
+    def reset(self) -> None:
         """Reset game to initial state."""
         self.score = 0
         self.game_over = False
         self.speed = PHYSICS.BASE_SPEED
-        self.dinosaur = Dinosaur(x=PHYSICS.DINO_X_POSITION, y=self.ground_y)
+        self.dinosaur = Dinosaur(
+            x=PHYSICS.DINO_X_POSITION,
+            y=self.ground_y,
+            width=self.width,
+            height=self.height,
+        )
         self.obstacles.clear()
         self.clouds.clear()
         self.obstacle_timer = 0
@@ -61,7 +73,7 @@ class DinoGameEngine:
             PHYSICS.MIN_OBSTACLE_GAP, PHYSICS.MAX_OBSTACLE_GAP
         )
 
-    def update(self, action: DinoAction):
+    def update(self, action: DinoAction) -> None:
         """Update game state based on player action."""
         if self.game_over:
             return
@@ -89,7 +101,7 @@ class DinoGameEngine:
         # Update game progression
         self._update_game_progression()
 
-    def _update_obstacles(self):
+    def _update_obstacles(self) -> None:
         """Update obstacle positions and spawn new ones."""
         # Update existing obstacles
         for obstacle in self.obstacles:
@@ -107,20 +119,22 @@ class DinoGameEngine:
                 PHYSICS.MIN_OBSTACLE_GAP, PHYSICS.MAX_OBSTACLE_GAP
             )
 
-    def _spawn_obstacle(self):
+    def _spawn_obstacle(self) -> None:
         """Spawn a new obstacle at the right edge of screen."""
         obstacle_type = random.choice(["cactus", "bird"])
 
         if obstacle_type == "cactus":
             variant = random.randint(0, len(PHYSICS.CACTUS_VARIANTS) - 1)
-            obstacle = Cactus(x=self.width, variant=variant, speed=self.speed)
+            self.obstacles.append(
+                Cactus(x=self.width, variant=variant, speed=self.speed)
+            )
         else:  # bird
             flight_level = random.randint(0, len(PHYSICS.BIRD_FLIGHT_HEIGHTS) - 1)
-            obstacle = Bird(x=self.width, flight_level=flight_level, speed=self.speed)
+            self.obstacles.append(
+                Bird(x=self.width, flight_level=flight_level, speed=self.speed)
+            )
 
-        self.obstacles.append(obstacle)
-
-    def _update_clouds(self):
+    def _update_clouds(self) -> None:
         """Update decorative clouds."""
         # Move existing clouds
         for cloud in self.clouds:
@@ -137,14 +151,14 @@ class DinoGameEngine:
                 PHYSICS.CLOUD_SPAWN_RATE_MIN, PHYSICS.CLOUD_SPAWN_RATE_MAX
             )
 
-    def _check_collisions(self):
+    def _check_collisions(self) -> None:
         """Check for collisions between dinosaur and obstacles."""
         for obstacle in self.obstacles:
             if self.dinosaur.collides_with(obstacle):
                 self.game_over = True
                 break
 
-    def _update_game_progression(self):
+    def _update_game_progression(self) -> None:
         """Update score and speed progression."""
         self.score += 1
 

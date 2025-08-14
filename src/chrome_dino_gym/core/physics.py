@@ -31,10 +31,10 @@ class PhysicsConfig:
     MAX_OBSTACLE_GAP: int = 200
 
     # Cactus variants (width, height)
-    CACTUS_VARIANTS: list[tuple[int, int]] = None
+    CACTUS_VARIANTS: list[tuple[int, int]] = []
 
     # Bird flight heights
-    BIRD_FLIGHT_HEIGHTS: list[float] = None
+    BIRD_FLIGHT_HEIGHTS: list[float] = []
     BIRD_WIDTH: int = 46
     BIRD_HEIGHT: int = 40
 
@@ -43,7 +43,7 @@ class PhysicsConfig:
     CLOUD_SPAWN_RATE_MAX: int = 400
     CLOUD_SPEED: float = 1.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize default values for mutable fields."""
         if self.CACTUS_VARIANTS is None:
             self.CACTUS_VARIANTS = [(17, 35), (34, 35), (51, 35)]

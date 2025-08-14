@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 import pygame
 
@@ -42,7 +43,7 @@ class Dinosaur(GameObject):
     is_jumping: bool = False
     is_ducking: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize dinosaur at ground position."""
         self.y = PHYSICS.GROUND_Y
         self.width = PHYSICS.DINO_NORMAL_WIDTH
@@ -66,13 +67,13 @@ class Dinosaur(GameObject):
             return True
         return False
 
-    def stop_duck(self):
+    def stop_duck(self) -> None:
         """Stop ducking."""
         if self.is_ducking:
             self.is_ducking = False
             self._update_dimensions()
 
-    def _update_dimensions(self):
+    def _update_dimensions(self) -> None:
         """Update dinosaur dimensions based on state."""
         if self.is_ducking and not self.is_jumping:
             old_height = self.height
@@ -86,7 +87,7 @@ class Dinosaur(GameObject):
             self.width = PHYSICS.DINO_NORMAL_WIDTH
             self.height = PHYSICS.DINO_NORMAL_HEIGHT
 
-    def update(self):
+    def update(self) -> None:
         """Update dinosaur physics and position."""
         if self.is_jumping:
             self.velocity_y += PHYSICS.GRAVITY
@@ -100,7 +101,7 @@ class Dinosaur(GameObject):
                 # Update dimensions in case we were ducking while jumping
                 self._update_dimensions()
 
-    def get_state_dict(self) -> dict:
+    def get_state_dict(self) -> dict[str, Any]:
         """Get dinosaur state as dictionary."""
         return {
             "x": self.x,
@@ -120,7 +121,7 @@ class Obstacle(GameObject):
     speed: float = PHYSICS.BASE_SPEED
     obstacle_type: str = "generic"
 
-    def update(self):
+    def update(self) -> None:
         """Move obstacle leftward."""
         self.x -= self.speed
 
@@ -181,7 +182,7 @@ class Cloud:
     y: float
     speed: float = PHYSICS.CLOUD_SPEED
 
-    def update(self):
+    def update(self) -> None:
         """Move cloud leftward."""
         self.x -= self.speed
 
