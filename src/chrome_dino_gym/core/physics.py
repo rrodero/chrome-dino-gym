@@ -1,6 +1,6 @@
 """Physics constants and configuration for the game."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -31,10 +31,10 @@ class PhysicsConfig:
     MAX_OBSTACLE_GAP: int = 200
 
     # Cactus variants (width, height)
-    CACTUS_VARIANTS: list[tuple[int, int]] = []
+    CACTUS_VARIANTS: list[tuple[int, int]] = field(default_factory=list)
 
     # Bird flight heights
-    BIRD_FLIGHT_HEIGHTS: list[float] = []
+    BIRD_FLIGHT_HEIGHTS: list[float] = field(default_factory=list)
     BIRD_WIDTH: int = 46
     BIRD_HEIGHT: int = 40
 
@@ -45,10 +45,10 @@ class PhysicsConfig:
 
     def __post_init__(self) -> None:
         """Initialize default values for mutable fields."""
-        if self.CACTUS_VARIANTS is None:
+        if len(self.CACTUS_VARIANTS) == 0:
             self.CACTUS_VARIANTS = [(17, 35), (34, 35), (51, 35)]
 
-        if self.BIRD_FLIGHT_HEIGHTS is None:
+        if len(self.BIRD_FLIGHT_HEIGHTS) == 0:
             self.BIRD_FLIGHT_HEIGHTS = [150, 100, 75]
 
 
