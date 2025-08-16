@@ -7,6 +7,7 @@ import numpy as np
 from gymnasium import spaces
 
 from ..core import DinoAction, DinoGameEngine
+from ..rendering import PyGameRenderer
 
 
 class ChromeDinoEnv(gym.Env):
@@ -159,3 +160,44 @@ class ChromeDinoEnv(gym.Env):
         }
 
         return observation, reward, terminated, truncated, info
+
+    def _calculate_reward(
+        self, state: dict[str, Any], prev_obstacles_passed: int
+    ) -> float:
+        """Calculate reward based on current state and previous state."""
+        reward = 0.0
+
+        if state["game_over"]:
+            # Large penalty for collision
+            reward += self.reward_config["collision_penalty"]
+        else:
+            # Small reward for surviving each step
+            reward += self.reward_config["step_reward"]
+
+            # Bonus reward for passing obstacles
+            current_obstacles_passed = self.game.get_obstacles_passed()
+            new_obstacles_passed = current_obstacles_passed - prev_obstacles_passed
+            if new_obstacles_passed > 0:
+                reward += self.reward_config["obstacle_reward"] * new_obstacles_passed
+
+        return reward
+
+    def render(self) -> np.ndarray | None:
+        """Render the environment."""
+        if self.render_mode is None:
+            return None
+
+        # Initialize renderer if needed
+        if self.renderer is None:
+            self.renderer = PyGameRenderer(
+                width=self.width, height=self.height, render_mode=self.render_mode
+            )
+            return self.renderer.render(self.game)
+
+        return None
+
+    def close(self) -> None:
+        """Clean up resources."""
+        if self.renderer is not None:
+            self.renderer.close()
+            self.renderer = None

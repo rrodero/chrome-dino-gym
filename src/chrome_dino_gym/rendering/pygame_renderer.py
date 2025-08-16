@@ -4,7 +4,7 @@ import numpy as np
 import pygame
 
 from ..core import DinoGameEngine
-from ..core.game_objects import Bird, Cactus, Dinosaur
+from ..core.game_objects import Bird, Cactus, Dinosaur, Obstacle
 
 
 class PyGameRenderer:
@@ -25,7 +25,7 @@ class PyGameRenderer:
             render_mode: Either "human" or "rgb_array"
         """
         self.width = width
-        self.height - height
+        self.height = height
         self.render_mode = render_mode
 
         # Initialize pygame
@@ -99,6 +99,8 @@ class PyGameRenderer:
         elif self.render_mode == "rgb_array":
             return np.transpose(pygame.surfarray.array3d(self.screen), axes=(1, 0, 2))
 
+        return None
+
     def _draw_dinosaur(self, dinosaur: Dinosaur, game_over: bool) -> None:
         """Draw the dinosaur character."""
         color = self.colors["dinosaur_dead"] if game_over else self.colors["dinosaur"]
@@ -131,7 +133,7 @@ class PyGameRenderer:
                     self.screen, color, (leg2_x, leg_y), (leg2_x, leg_y + 5), 3
                 )
 
-    def _draw_obstacle(self, obstacle) -> None:
+    def _draw_obstacle(self, obstacle: Obstacle) -> None:
         """Draw an obstacle (cactus or bird)."""
         if isinstance(obstacle, Cactus):
             self._draw_cactus(obstacle)

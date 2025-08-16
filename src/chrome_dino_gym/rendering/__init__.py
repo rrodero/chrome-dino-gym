@@ -1,5 +1,5 @@
 """Rendering system for Chrome Dino game."""
 
-from .pygame_renderer import PygameRenderer
+from .pygame_renderer import PyGameRenderer
 
-__all__ = ["PygameRenderer"]
+__all__ = ["PyGameRenderer"]
