@@ -5,12 +5,14 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
+from gymnasium.core import RenderFrame
+from gymnasium.spaces import Space
 
 from ..core import DinoAction, DinoGameEngine
 from ..rendering import PyGameRenderer
 
 
-class ChromeDinoEnv(gym.Env):
+class ChromeDinoEnv(gym.Env[np.ndarray, int]):
     """
     Chrome Dino Game Gymnasium Environment.
 
@@ -40,6 +42,9 @@ class ChromeDinoEnv(gym.Env):
     """
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
+
+    action_space: Space[int]
+    observation_space: Space[np.ndarray]
 
     def __init__(
         self,
@@ -74,25 +79,25 @@ class ChromeDinoEnv(gym.Env):
             "obstacle_reward": 10.0,
             "collision_penalty": -100.0,
         }
-        if reward_config:
+        if reward_config is not None:
             self.reward_config.update(reward_config)
 
         # Spaces
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Discrete(3)  # type: ignore[assignment]
         self.observation_space = spaces.Box(
             low=-2.0, high=2.0, shape=(20,), dtype=np.float32
         )
 
         # Game components
         self.game = DinoGameEngine(width=width, height=height)
-        self.renderer = None
+        self.renderer: PyGameRenderer | None = None
 
         # Episode tracking
         self.step_count = 0
         self.last_obstacles_passed = 0
 
     def reset(
-        self, seed: int | None = None, options: dict | None = None
+        self, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[np.ndarray, dict[str, Any]]:
         """Reset the environment to initial state."""
         super().reset(seed=seed)
@@ -182,7 +187,7 @@ class ChromeDinoEnv(gym.Env):
 
         return reward
 
-    def render(self) -> np.ndarray | None:
+    def render(self) -> RenderFrame | None:
         """Render the environment."""
         if self.render_mode is None:
             return None
@@ -192,9 +197,11 @@ class ChromeDinoEnv(gym.Env):
             self.renderer = PyGameRenderer(
                 width=self.width, height=self.height, render_mode=self.render_mode
             )
-            return self.renderer.render(self.game)
 
-        return None
+        if self.renderer:
+            return self.renderer.render(self.game)
+        else:
+            return None
 
     def close(self) -> None:
         """Clean up resources."""

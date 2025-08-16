@@ -1,7 +1,10 @@
 """Pygame-based renderer for Chrome Dino game."""
 
+from typing import cast
+
 import numpy as np
 import pygame
+from gymnasium.core import RenderFrame
 
 from ..core import DinoGameEngine
 from ..core.game_objects import Bird, Cactus, Dinosaur, Obstacle
@@ -57,7 +60,7 @@ class PyGameRenderer:
         # Initialize font
         self.font = pygame.font.Font(None, 24)
 
-    def render(self, game: DinoGameEngine) -> np.ndarray | None:
+    def render(self, game: DinoGameEngine) -> RenderFrame | None:
         """
         Render the current game state.
 
@@ -97,7 +100,10 @@ class PyGameRenderer:
                 self.clock.tick(60)
             return None
         elif self.render_mode == "rgb_array":
-            return np.transpose(pygame.surfarray.array3d(self.screen), axes=(1, 0, 2))
+            rgb_array = np.transpose(
+                pygame.surfarray.array3d(self.screen), axes=(1, 0, 2)
+            )
+            return cast(RenderFrame, rgb_array)
 
         return None
 

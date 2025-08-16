@@ -7,6 +7,7 @@ __email__ = "rrodero@live.com"
 from typing import Any
 
 import gymnasium as gym
+import numpy as np
 from gymnasium.envs.registration import register
 
 from .envs.dino_env import ChromeDinoEnv
@@ -19,7 +20,7 @@ register(
 )
 
 
-def make(env_id: str, **kwargs: Any) -> gym.Env:
+def make(env_id: str, **kwargs: Any) -> gym.Env[np.ndarray, int]:
     """Create environment instance."""
     import gymnasium as gym
 
