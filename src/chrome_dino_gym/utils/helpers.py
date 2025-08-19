@@ -93,19 +93,6 @@ def get_env_info(env: ChromeDinoEnv) -> dict[str, Any]:
     }
 
 
-def validate_action(env: ChromeDinoEnv, action: Any) -> bool:
-    """Validate if an action is valid for the environment.
-
-    Args:
-        env: Chrome Dino environment instance
-        action: Action to validate
-
-    Returns:
-        True if action is valid, False otherwise
-    """
-    return env.action_space.contains(action)
-
-
 def benchmark_env(
     env_id: str = "ChromeDino-v0", episodes: int = 10
 ) -> dict[str, float]:
