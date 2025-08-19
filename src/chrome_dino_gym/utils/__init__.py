@@ -1,5 +1,5 @@
 """Utility functions and helpers."""
 
-from .helpers import create_env, register_envs
+from .helpers import benchmark_env, create_env, register_envs
 
-__all__ = ["create_env", "register_envs"]
+__all__ = ["create_env", "register_envs", "benchmark_env"]

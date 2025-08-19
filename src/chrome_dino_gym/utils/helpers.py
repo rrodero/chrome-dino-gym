@@ -7,7 +7,7 @@ import gymnasium as gym
 from ..envs import ChromeDinoEnv
 
 
-def create_env(env_id: str = "ChromeDino-v0", **kwargs) -> ChromeDinoEnv:
+def create_env(env_id: str = "ChromeDino-v0", **kwargs: Any) -> ChromeDinoEnv:
     """
     Create a Chrome Dino environment instance.
 
@@ -18,7 +18,19 @@ def create_env(env_id: str = "ChromeDino-v0", **kwargs) -> ChromeDinoEnv:
     Returns:
         Configured ChromDinoEnv instance
     """
-    return gym.make(env_id, **kwargs)
+    # Register the environment if not already registered
+    try:
+        env = gym.make(env_id, **kwargs)
+    except gym.error.UnregisteredEnv:
+        register_envs()
+        env = gym.make(env_id, **kwargs)
+
+    # Ensure we return the correct type
+    if isinstance(env, ChromeDinoEnv):
+        return env
+    else:
+        # This should not happen with proper registration, but for type safety
+        raise TypeError(f"Expected ChromeDinoEnv, got {type(env)}")
 
 
 def register_envs() -> None:
@@ -63,7 +75,7 @@ def register_envs() -> None:
     )
 
 
-def get_env_info(env_id: str = "ChromeDino-v0") -> dict[str, Any]:
+def get_env_info(env: ChromeDinoEnv) -> dict[str, Any]:
     """
     Get information about an environment.
 
@@ -73,19 +85,26 @@ def get_env_info(env_id: str = "ChromeDino-v0") -> dict[str, Any]:
     Returns:
         Dictionary containing environment information
     """
-    env = create_env(env_id)
-
-    info = {
-        "id": env_id,
+    return {
         "action_space": env.action_space,
         "observation_space": env.observation_space,
-        "reward_range": env.reward_range,
+        "reward_config": env.reward_config,
         "metadata": env.metadata,
         "spec": env.spec,
     }
 
-    env.close()
-    return info
+
+def validate_action(env: ChromeDinoEnv, action: Any) -> bool:
+    """Validate if an action is valid for the environment.
+
+    Args:
+        env: Chrome Dino environment instance
+        action: Action to validate
+
+    Returns:
+        True if action is valid, False otherwise
+    """
+    return env.action_space.contains(action)
 
 
 def benchmark_env(
