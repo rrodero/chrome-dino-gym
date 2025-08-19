@@ -63,3 +63,31 @@ jobs:
     - name: Coverage Summary
       run: |
         uv run coverage report --show-missing
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install packages
+      run: |
+        uv sync --extra examples
+        uv pip install -e
+
+    - name: Test CLI commands
+      run: |
+        uv run dino-demo --help
+
+    - name: Run examples
+      run: |
+        uv run python examples/basic_usage.py
