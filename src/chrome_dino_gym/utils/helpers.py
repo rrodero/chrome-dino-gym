@@ -1,6 +1,6 @@
 """Helper functions for environment creation and management"""
 
-from typing import Any
+from typing import Any, cast
 
 import gymnasium as gym
 
@@ -26,8 +26,8 @@ def create_env(env_id: str = "ChromeDino-v0", **kwargs: Any) -> ChromeDinoEnv:
         env = gym.make(env_id, **kwargs)
 
     # Ensure we return the correct type
-    if isinstance(env, ChromeDinoEnv):
-        return env
+    if isinstance(env.unwrapped, ChromeDinoEnv):
+        return cast(ChromeDinoEnv, env.unwrapped)
     else:
         # This should not happen with proper registration, but for type safety
         raise TypeError(f"Expected ChromeDinoEnv, got {type(env)}")
@@ -35,10 +35,9 @@ def create_env(env_id: str = "ChromeDino-v0", **kwargs: Any) -> ChromeDinoEnv:
 
 def register_envs() -> None:
     """Register all Chrome Dino environments with Gymnasium"""
-    from gymnasium.envs.registration import register
 
     # Register main environment
-    register(
+    gym.register(
         id="ChromeDino-v0",
         entry_point="chrome_dino_gym.envs:ChromeDinoEnv",
         max_episode_steps=10000,
@@ -46,7 +45,7 @@ def register_envs() -> None:
     )
 
     # Register variant with different settings
-    register(
+    gym.register(
         id="ChromeDino-Easy-v0",
         entry_point="chrome_dino_gym.envs:ChromeDinoEnv",
         max_episode_steps=5000,
@@ -60,7 +59,7 @@ def register_envs() -> None:
         },
     )
 
-    register(
+    gym.register(
         id="ChromeDino-Hard-v0",
         entry_point="chrome_dino_gym.envs:ChromeDinoEnv",
         max_episode_steps=20000,

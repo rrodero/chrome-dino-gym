@@ -43,9 +43,6 @@ class ChromeDinoEnv(gym.Env[np.ndarray, int]):
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
 
-    action_space: Space[int]
-    observation_space: Space[np.ndarray]
-
     def __init__(
         self,
         render_mode: str | None = None,
@@ -83,8 +80,8 @@ class ChromeDinoEnv(gym.Env[np.ndarray, int]):
             self.reward_config.update(reward_config)
 
         # Spaces
-        self.action_space = spaces.Discrete(3)  # type: ignore[assignment]
-        self.observation_space = spaces.Box(
+        self.action_space: Space[int] = spaces.Discrete(3)  # type: ignore[assignment]
+        self.observation_space: Space[np.ndarray] = spaces.Box(
             low=-2.0, high=2.0, shape=(20,), dtype=np.float32
         )
 

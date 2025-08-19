@@ -8,11 +8,10 @@ from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from gymnasium.envs.registration import register
 
 from .envs.dino_env import ChromeDinoEnv
 
-register(
+gym.register(
     id="ChromeDino-v0",
     entry_point="chrome_dino_gym.envs:ChromeDinoEnv",
     max_episode_steps=10000,
@@ -22,7 +21,6 @@ register(
 
 def make(env_id: str, **kwargs: Any) -> gym.Env[np.ndarray, int]:
     """Create environment instance."""
-    import gymnasium as gym
 
     return gym.make(env_id, **kwargs)
 
