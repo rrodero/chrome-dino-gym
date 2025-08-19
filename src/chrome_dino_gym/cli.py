@@ -18,7 +18,7 @@ def demo(render_mode: str = "human", episodes: int = 3) -> None:
             print(f"\nEpisode {episode + 1}/{episodes}")
             obs, info = env.reset()
 
-            total_reward = 0
+            total_reward = 0.0
             step_count = 0
 
             while True:
@@ -50,7 +50,7 @@ def demo(render_mode: str = "human", episodes: int = 3) -> None:
         print("Demo completed!")
 
 
-def train():
+def train() -> None:
     """Placeholder for training command."""
     print("Training functionality not implemented yet.")
     print("This would typically involve:")
@@ -62,7 +62,7 @@ def train():
     print("\nSee examples/ directory for training implementations.")
 
 
-def main():
+def main() -> None:
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(description="Chrome Dino Gym CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")

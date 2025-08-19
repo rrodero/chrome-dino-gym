@@ -21,7 +21,7 @@ def create_env(env_id: str = "ChromeDino-v0", **kwargs) -> ChromeDinoEnv:
     return gym.make(env_id, **kwargs)
 
 
-def register_envs():
+def register_envs() -> None:
     """Register all Chrome Dino environments with Gymnasium"""
     from gymnasium.envs.registration import register
 
@@ -109,7 +109,7 @@ def benchmark_env(
 
     for _ in range(episodes):
         obs, info = env.reset()
-        episode_reward = 0
+        episode_reward = 0.0
         episode_length = 0
 
         while True:
