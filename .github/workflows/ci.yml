@@ -91,3 +91,4 @@ jobs:
     - name: Run examples
       run: |
         uv run python examples/basic_usage.py
+        uv run python examples/random_agent.py --episodes 3
