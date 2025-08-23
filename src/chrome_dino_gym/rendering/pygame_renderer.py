@@ -1,5 +1,7 @@
 """Pygame-based renderer for Chrome Dino game."""
 
+import os
+import sys
 from typing import cast
 
 import numpy as np
@@ -30,18 +32,15 @@ class PyGameRenderer:
         self.width = width
         self.height = height
         self.render_mode = render_mode
+        self.is_initialized = False
+        self.display_surface: pygame.Surface | None = None
+        self.font: pygame.font.Font | None = None
 
         # Initialize pygame
-        pygame.init()
-        pygame.display.init()
+        self._initialize_pygame()
 
-        # Create surface
-        if render_mode == "human":
-            pygame.display.set_mode((width, height))
-            pygame.display.set_caption("AI Chrome Dino Game")
-            self.clock = pygame.time.Clock()
-
-        self.screen = pygame.Surface((width, height))
+        # Create surfaces
+        self._create_surfaces()
 
         # Colors
         self.colors = {
@@ -57,8 +56,78 @@ class PyGameRenderer:
             "black": (0, 0, 0),  # Black
         }
 
-        # Initialize font
-        self.font = pygame.font.Font(None, 24)
+        # Initialize font safely
+        self._initialize_font()
+
+    def _initialize_pygame(self) -> None:
+        """Initialize pygame with proper error handling."""
+        try:
+            # Set SDL video driver if in headless environment
+            if self.render_mode == "rgb_array" or not self._has_display():
+                os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+            # Initialize pygame
+            pygame.init()
+
+            # Initialize display module
+            pygame.display.init()
+
+            self.is_initialized = True
+
+        except pygame.error as e:
+            print(f"Warning: Pygame initialization failed: {e}")
+            # Try fallback initialization
+            try:
+                os.environ["SDL_VIDEODRIVER"] = "dummy"
+                pygame.init()
+                pygame.display.init()
+                self.is_initialized = True
+            except pygame.error as e2:
+                print(f"Error: Pygame fallback initialization failed: {e2}")
+                self.is_initialized = False
+
+    def _has_display(self) -> bool:
+        """Check if we have a display available."""
+        if sys.platform.startswith("linux"):
+            return "DISPLAY" in os.environ
+        return True  # Assume display available on Windows/Mac
+
+    def _create_surfaces(self) -> None:
+        """Create pygame surfaces for rendering."""
+        if not self.is_initialized:
+            return
+
+        try:
+            if self.render_mode == "human":
+                # Create actual display window
+                self.screen = pygame.display.set_mode((self.width, self.height))
+                pygame.display.set_caption("Chrome Dino Game")
+                self.clock = pygame.time.Clock()
+                self.display_surface = self.screen
+            else:
+                # Create off-screen surface for rgb_array
+                self.screen = pygame.Surface((self.width, self.height))
+                self.display_surface = None
+
+        except pygame.error as e:
+            print(f"Warning: Could not create display surface: {e}")
+            # Fallback to off-screen surface
+            self.screen = pygame.Surface((self.width, self.height))
+            self.display_surface = None
+
+    def _initialize_font(self) -> None:
+        """Initialize font with fallback options."""
+        try:
+            # Try to load default font
+            self.font = pygame.font.Font(None, 24)
+        except pygame.error:
+            try:
+                # Try system default
+                self.font = pygame.font.Font(pygame.font.get_default_font(), 24)
+            except pygame.error:
+                # No font available
+                self.font = None
+                print("Warning: No fonts available, text will not be rendered")
 
     def render(self, game: DinoGameEngine) -> RenderFrame | None:
         """
@@ -68,17 +137,17 @@ class PyGameRenderer:
             game: Game engine instance to render
 
         Returns:
-            RGB array if render_mode is "rgb_array", None otherwise
+            RenderFrame if render_mode is "rgb_array", None otherwise
         """
+        if not self.is_initialized or self.screen is None:
+            print("Warning: Renderer not properly initialized")
+            return None
 
         # Clear screen
         self.screen.fill(self.colors["background"])
 
         # Draw ground line
-        ground_y = int(game.ground_y + game.dinosaur.height)
-        pygame.draw.line(
-            self.screen, self.colors["ground"], (0, ground_y), (self.width, ground_y), 2
-        )
+        self._draw_ground(game)
 
         # Draw clouds
         for cloud in game.clouds:
@@ -94,29 +163,34 @@ class PyGameRenderer:
         # Draw UI elements
         self._draw_ui(game)
 
+        # Handle different render modes
         if self.render_mode == "human":
-            pygame.display.flip()
-            if hasattr(self, "clock"):
-                self.clock.tick(60)
+            self._render_human()
             return None
         elif self.render_mode == "rgb_array":
-            rgb_array = np.transpose(
-                pygame.surfarray.array3d(self.screen), axes=(1, 0, 2)
-            )
-            return cast(RenderFrame, rgb_array)
+            return self._render_rgb_array()
 
         return None
+
+    def _draw_ground(self, game: DinoGameEngine) -> None:
+        """Draw the ground line."""
+        ground_y = int(game.ground_y + game.dinosaur.height)
+        pygame.draw.line(
+            self.screen, self.colors["ground"], (0, ground_y), (self.width, ground_y), 2
+        )
 
     def _draw_dinosaur(self, dinosaur: Dinosaur, game_over: bool) -> None:
         """Draw the dinosaur character."""
         color = self.colors["dinosaur_dead"] if game_over else self.colors["dinosaur"]
 
         # Main body rectangle
-        pygame.draw.rect(
-            self.screen,
-            color,
-            (int(dinosaur.x), int(dinosaur.y), dinosaur.width, dinosaur.height),
+        dino_rect = pygame.Rect(
+            int(dinosaur.x), int(dinosaur.y), dinosaur.width, dinosaur.height
         )
+        pygame.draw.rect(self.screen, color, dino_rect)
+
+        # Add border for visibility
+        pygame.draw.rect(self.screen, self.colors["black"], dino_rect, 2)
 
         # Add simple details if not ducking
         if not dinosaur.is_ducking:
@@ -126,12 +200,11 @@ class PyGameRenderer:
             pygame.draw.circle(self.screen, self.colors["white"], (eye_x, eye_y), 4)
             pygame.draw.circle(self.screen, self.colors["black"], (eye_x + 1, eye_y), 2)
 
-            # Simple legs (lines)
-            leg_y = int(dinosaur.y + dinosaur.height)
-            leg1_x = int(dinosaur.x + dinosaur.width * 0.3)
-            leg2_x = int(dinosaur.x + dinosaur.width * 0.6)
-
+            # Simple legs (lines) - only if on ground
             if not dinosaur.is_jumping:
+                leg_y = int(dinosaur.y + dinosaur.height)
+                leg1_x = int(dinosaur.x + dinosaur.width * 0.3)
+                leg2_x = int(dinosaur.x + dinosaur.width * 0.6)
                 pygame.draw.line(
                     self.screen, color, (leg1_x, leg_y), (leg1_x, leg_y + 5), 3
                 )
@@ -146,66 +219,66 @@ class PyGameRenderer:
         elif isinstance(obstacle, Bird):
             self._draw_bird(obstacle)
         else:
-            # Generic obstacle
-            pygame.draw.rect(
-                self.screen,
-                self.colors["cactus"],
-                (int(obstacle.x), int(obstacle.y), obstacle.width, obstacle.height),
+            # Generic obstacle with border
+            rect = pygame.Rect(
+                int(obstacle.x), int(obstacle.y), obstacle.width, obstacle.height
             )
+            pygame.draw.rect(self.screen, self.colors["cactus"], rect)
+            pygame.draw.rect(self.screen, self.colors["black"], rect, 2)
 
     def _draw_cactus(self, cactus: Cactus) -> None:
         """Draw a cactus obstacle with some detail."""
-        # Main body
-        pygame.draw.rect(
-            self.screen,
-            self.colors["cactus"],
-            (int(cactus.x), int(cactus.y), cactus.width, cactus.height),
+        # Main body with border
+        main_rect = pygame.Rect(
+            int(cactus.x), int(cactus.y), cactus.width, cactus.height
         )
+        pygame.draw.rect(self.screen, self.colors["cactus"], main_rect)
+        pygame.draw.rect(self.screen, self.colors["black"], main_rect, 2)
 
         # Add simple cactus arms for larger variants
         if cactus.width > 20:
             arm_y = int(cactus.y + cactus.height * 0.4)
             arm_width = max(3, cactus.width // 8)
+            arm_height = cactus.height // 3
 
             # Left arm
-            pygame.draw.rect(
-                self.screen,
-                self.colors["cactus"],
-                (int(cactus.x - arm_width), arm_y, arm_width, cactus.height // 3),
+            left_arm = pygame.Rect(
+                int(cactus.x - arm_width), arm_y, arm_width, arm_height
             )
+            pygame.draw.rect(self.screen, self.colors["cactus"], left_arm)
+            pygame.draw.rect(self.screen, self.colors["black"], left_arm, 1)
 
             # Right arm (for very wide cacti)
             if cactus.width > 40:
-                pygame.draw.rect(
-                    self.screen,
-                    self.colors["cactus"],
-                    (
-                        int(cactus.x + cactus.width),
-                        arm_y,
-                        arm_width,
-                        cactus.height // 3,
-                    ),
+                right_arm = pygame.Rect(
+                    int(cactus.x + cactus.width), arm_y, arm_width, arm_height
                 )
+                pygame.draw.rect(self.screen, self.colors["cactus"], right_arm)
+                pygame.draw.rect(self.screen, self.colors["black"], right_arm, 1)
 
     def _draw_bird(self, bird: Bird) -> None:
         """Draw a bird obstacle."""
-        # Main body (ellipse)
-        pygame.draw.ellipse(
-            self.screen,
-            self.colors["bird"],
-            (int(bird.x), int(bird.y), bird.width, bird.height),
-        )
+        # Main body (filled ellipse with border)
+        bird_rect = pygame.Rect(int(bird.x), int(bird.y), bird.width, bird.height)
+        pygame.draw.ellipse(self.screen, self.colors["bird"], bird_rect)
+        pygame.draw.ellipse(self.screen, self.colors["black"], bird_rect, 2)
 
         # Simple wing details
         wing_y = int(bird.y + bird.height * 0.3)
-        pygame.draw.arc(
-            self.screen,
-            self.colors["black"],
-            (int(bird.x + 5), wing_y, bird.width - 10, bird.height // 2),
-            0,
-            3.14,
-            2,
+        wing_rect = pygame.Rect(
+            int(bird.x + 5), wing_y, bird.width - 10, bird.height // 2
         )
+        try:
+            pygame.draw.arc(self.screen, self.colors["black"], wing_rect, 0, 3.14, 2)
+        except pygame.error:
+            # Fallback if arc drawing fails
+            pygame.draw.line(
+                self.screen,
+                self.colors["black"],
+                (int(bird.x + 5), wing_y + bird.height // 4),
+                (int(bird.x + bird.width - 5), wing_y + bird.height // 4),
+                2,
+            )
 
     def _draw_cloud(self, x: float, y: float) -> None:
         """Draw a simple cloud."""
@@ -220,6 +293,10 @@ class PyGameRenderer:
     def _draw_ui(self, game: DinoGameEngine) -> None:
         """Draw UI elements like score and speed."""
         if self.font is None:
+            # Fallback: draw simple rectangles for score area
+            score_rect = pygame.Rect(self.width - 120, 20, 100, 50)
+            pygame.draw.rect(self.screen, self.colors["white"], score_rect)
+            pygame.draw.rect(self.screen, self.colors["black"], score_rect, 2)
             return
 
         try:
@@ -243,6 +320,10 @@ class PyGameRenderer:
                 text_rect = game_over_text.get_rect(
                     center=(self.width // 2, self.height // 2)
                 )
+                # Add background for visibility
+                bg_rect = text_rect.inflate(20, 10)
+                pygame.draw.rect(self.screen, self.colors["white"], bg_rect)
+                pygame.draw.rect(self.screen, self.colors["black"], bg_rect, 2)
                 self.screen.blit(game_over_text, text_rect)
 
                 restart_text = self.font.render(
@@ -251,13 +332,56 @@ class PyGameRenderer:
                 restart_rect = restart_text.get_rect(
                     center=(self.width // 2, self.height // 2 + 30)
                 )
+                bg_rect2 = restart_rect.inflate(20, 10)
+                pygame.draw.rect(self.screen, self.colors["white"], bg_rect2)
+                pygame.draw.rect(self.screen, self.colors["black"], bg_rect2, 2)
                 self.screen.blit(restart_text, restart_rect)
 
-        except Exception:
-            # Fallback if text rendering fails
-            pass
+        except Exception as e:
+            print(f"Warning: Could not render text: {e}")
+
+    def _render_human(self) -> None:
+        """Handle human rendering mode."""
+        try:
+            if self.display_surface is not None:
+                # Copy to display surface and flip
+                if self.display_surface != self.screen:
+                    self.display_surface.blit(self.screen, (0, 0))
+                pygame.display.flip()
+
+                # Control frame rate
+                if hasattr(self, "clock") and self.clock:
+                    self.clock.tick(60)
+            return None
+
+        except pygame.error as e:
+            print(f"Warning: Display update failed: {e}")
+            return None
+
+    def _render_rgb_array(self, frame: RenderFrame | None = None) -> RenderFrame:
+        """Handle rgb_array rendering mode."""
+        try:
+            # Convert pygame surface to numpy array
+            rgb_array = pygame.surfarray.array3d(self.screen)
+            # Transpose to get correct shape (height, width, channels)
+            rgb_array = np.transpose(rgb_array, axes=(1, 0, 2))
+            frame = cast(RenderFrame, rgb_array)
+            return frame
+
+        except Exception as e:
+            print(f"Warning: Could not convert to RGB array: {e}")
+            # Return black screen as fallback
+            frame = cast(
+                RenderFrame, np.zeros((self.height, self.width, 3), dtype=np.uint8)
+            )
+            return frame
 
     def close(self) -> None:
         """Clean up pygame resources."""
-        pygame.display.quit()
-        pygame.quit()
+        try:
+            if self.is_initialized:
+                pygame.display.quit()
+                pygame.quit()
+                self.is_initialized = False
+        except pygame.error:
+            pass  # Ignore errors during cleanup
